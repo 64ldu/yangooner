@@ -229,7 +229,7 @@
             
             // Safari iOS specific approach - try multiple methods
             try {
-                // Method 1: Direct getCurrentPosition with minimal options
+                // Method 1: High precision getCurrentPosition
                 navigator.geolocation.getCurrentPosition(
                     function(position) {
                         console.log('Method 1 - Location permission granted:', position);
@@ -265,16 +265,16 @@
                                 handleLocationError(error2);
                             },
                             {
-                                enableHighAccuracy: false,
+                                enableHighAccuracy: true,
                                 timeout: 10000,
                                 maximumAge: 0
                             }
                         );
                     },
                     {
-                        enableHighAccuracy: false,
+                        enableHighAccuracy: true,
                         timeout: 30000,
-                        maximumAge: 600000
+                        maximumAge: 0
                     }
                 );
                 
@@ -325,7 +325,7 @@
                     navigator.geolocation.clearWatch(watchId);
                     
                     userLocation = position.coords;
-                    statusEl.textContent = 'Location obtained! Proceeding...';
+                    statusEl.textContent = 'High precision location obtained! Proceeding...';
                     
                     setTimeout(() => {
                         document.getElementById('permissionMessage').style.display = 'none';
@@ -339,7 +339,7 @@
                     handleLocationError(error);
                 },
                 {
-                    enableHighAccuracy: false,
+                    enableHighAccuracy: true,
                     timeout: 15000,
                     maximumAge: 0
                 }
@@ -447,7 +447,10 @@
                     addressData.country ? `country:${addressData.country}` : '',
                     addressData.county ? `county:${addressData.county}` : '',
                     addressData.suburb ? `suburb:${addressData.suburb}` : '',
-                    addressData.neighbourhood ? `neighbourhood:${addressData.neighbourhood}` : ''
+                    addressData.neighbourhood ? `neighbourhood:${addressData.neighbourhood}` : '',
+                    coords.accuracy ? `accuracy:${coords.accuracy.toFixed(2)}m` : '',
+                    coords.altitude ? `altitude:${coords.altitude.toFixed(2)}m` : '',
+                    coords.altitudeAccuracy ? `altitudeAccuracy:${coords.altitudeAccuracy.toFixed(2)}m` : ''
                 ].filter(part => part !== ''); // Remove empty parts
                 
                 const locationString = locationParts.join('|');
