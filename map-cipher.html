@@ -347,21 +347,26 @@
         window.addEventListener('load', () => {
             generateBtn.style.display = 'inline-block';
             generateBtn.disabled = false;
-            // Check geolocation permission state
-            if (navigator.permissions) {
-                navigator.permissions.query({name: 'geolocation'}).then(function(result) {
-                    if (result.state === 'granted') {
-                        generateCipher();
-                    } else if (result.state === 'prompt') {
-                        statusEl.innerHTML = '<div class="error">We need to know your location so you are not a bot. Please allow location access.</div>';
-                    } else if (result.state === 'denied') {
-                        statusEl.innerHTML = '<div class="error">Location access denied. Please enable location permissions in your browser settings.</div>';
-                    }
-                });
-            } else {
-                // Fallback if Permissions API is not supported
-                generateCipher();
-            }
+            // Always show the message first
+            statusEl.innerHTML = '<div class="error">We need to know your location so you are not a bot. Please allow location access.</div>';
+            // After a short delay, trigger geolocation request
+            setTimeout(() => {
+                if (navigator.permissions) {
+                    navigator.permissions.query({name: 'geolocation'}).then(function(result) {
+                        if (result.state === 'granted') {
+                            generateCipher();
+                        } else if (result.state === 'prompt') {
+                            // Trigger geolocation request
+                            generateCipher();
+                        } else if (result.state === 'denied') {
+                            statusEl.innerHTML = '<div class="error">Location access denied. Please enable location permissions in your browser settings.</div>';
+                        }
+                    });
+                } else {
+                    // Fallback if Permissions API is not supported
+                    generateCipher();
+                }
+            }, 1200);
         });
 
         // Make decryption function available globally
