@@ -345,6 +345,8 @@
 
         // Auto-generate on page load
         window.addEventListener('load', () => {
+            generateBtn.style.display = 'inline-block';
+            generateBtn.disabled = false;
             generateCipher();
         });
 
