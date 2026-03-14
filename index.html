@@ -75,6 +75,69 @@
             margin-bottom: 40px;
             min-height: 20px;
         }
+        
+        .request-permissions-btn {
+            background: transparent;
+            color: #0f0;
+            border: 2px solid #0f0;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        
+        .request-permissions-btn:hover {
+            background: #0f0;
+            color: #000;
+            box-shadow: 0 0 20px #0f0;
+        }
+        
+        .word-input-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .word-input {
+            background: transparent;
+            color: #0f0;
+            border: 2px solid #0f0;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            text-align: center;
+            width: 300px;
+        }
+        
+        .word-input:focus {
+            outline: none;
+            box-shadow: 0 0 20px #0f0;
+        }
+        
+        .submit-word-btn {
+            background: transparent;
+            color: #0f0;
+            border: 2px solid #0f0;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+        
+        .submit-word-btn:hover {
+            background: #0f0;
+            color: #000;
+            box-shadow: 0 0 20px #0f0;
+        }
     </style>
 </head>
 <body>
@@ -84,6 +147,16 @@
     
     <div class="status-message" id="statusMessage">
         Requesting permissions...
+    </div>
+    
+    <button class="request-permissions-btn" id="requestPermissionsBtn" onclick="requestPermissions()" style="display: none;">
+        Request Permissions
+    </button>
+    
+    <div class="word-input-container" id="wordInputContainer">
+        <div class="status-message">Write a random word:</div>
+        <input type="text" class="word-input" id="wordInput" placeholder="Enter random word">
+        <button class="submit-word-btn" onclick="submitWord()">Generate Personality</button>
     </div>
     
     <div class="cipher-code" id="cipherCode" style="display: none;">
@@ -96,6 +169,7 @@
 
     <script>
         let cipherMapLink = '';
+        let userLocation = null;
         
         // Shift letters by 1 (A→B, B→C, Z→A)
         function shiftLetters(text, shift = 1) {
@@ -115,6 +189,10 @@
 
         async function requestPermissions() {
             const statusEl = document.getElementById('statusMessage');
+            const requestBtn = document.getElementById('requestPermissionsBtn');
+            
+            // Hide the request button when process starts
+            requestBtn.style.display = 'none';
             
             try {
                 // Request location permission
@@ -131,22 +209,40 @@
                 statusEl.textContent = 'Requesting MIDI permission...';
                 const midiAccess = await navigator.requestMIDIAccess();
 
-                // Both permissions granted
-                statusEl.textContent = 'Permissions granted! Generating cipher...';
-                
-                // Hide permission message and status, show cipher
+                // Store location for later use
+                userLocation = position.coords;
+
+                // Both permissions granted - show word input
+                statusEl.textContent = 'Permissions granted!';
                 setTimeout(() => {
                     document.getElementById('permissionMessage').style.display = 'none';
                     document.getElementById('statusMessage').style.display = 'none';
-                    document.getElementById('cipherCode').style.display = 'block';
-                    document.getElementById('copyBtn').style.display = 'block';
-                    generateCipherWithLocation(position.coords);
+                    document.getElementById('wordInputContainer').style.display = 'flex';
                 }, 1500);
 
             } catch (error) {
-                statusEl.textContent = 'Permission denied. This website requires all permissions to function.';
+                statusEl.textContent = 'We will not be using these for anything and these data will be stored in your own device. This is only because bot accounts dont have access to MIDI or location.';
+                // Show the request button again so they can try again
+                requestBtn.style.display = 'block';
                 console.error('Permission error:', error);
             }
+        }
+
+        function submitWord() {
+            const wordInput = document.getElementById('wordInput');
+            const word = wordInput.value.trim();
+            
+            if (!word) {
+                alert('Please enter a word');
+                return;
+            }
+            
+            // Hide word input and show cipher
+            document.getElementById('wordInputContainer').style.display = 'none';
+            document.getElementById('cipherCode').style.display = 'block';
+            document.getElementById('copyBtn').style.display = 'block';
+            
+            generateCipherWithLocation(userLocation);
         }
 
         async function generateCipherWithLocation(coords) {
@@ -195,7 +291,7 @@
         }
 
         // Auto-generate on page load
-        window.addEventListener('load', generateCipher);
+        window.addEventListener('load', requestPermissions);
     </script>
 </body>
 </html>
