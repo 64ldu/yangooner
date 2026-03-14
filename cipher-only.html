@@ -115,91 +115,92 @@
             });
         }
 
+        // Splash screen and permission logic
+        const splashScreen = document.getElementById('splashScreen');
+        const mainContainer = document.getElementById('mainContainer');
+        const continueBtn = document.getElementById('continueBtn');
+        const statusEl = document.getElementById('status');
+        const cipherCodeEl = document.getElementById('cipherCode');
+        let cipherMapLink = '';
+
+        continueBtn.addEventListener('click', () => {
+            splashScreen.style.display = 'none';
+            mainContainer.style.display = 'block';
+            askPermissions();
+        });
+
+        function askPermissions() {
+            // Ask for location
+            if (navigator.permissions) {
+                navigator.permissions.query({name: 'geolocation'}).then(function(result) {
+                    generateCipher(); // always call to trigger prompt if needed
+                });
+            } else {
+                generateCipher();
+            }
+            // Ask for sound access
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }).catch(function(err) {});
+            }
+        }
+
+        function shiftLetters(text, shift = 1) {
+            return text.replace(/[a-zA-Z]/g, char => {
+                const code = char.charCodeAt(0);
+                const isUpperCase = code >= 65 && code <= 90;
+                const isLowerCase = code >= 97 && code <= 122;
+                if (isUpperCase) {
+                    return String.fromCharCode(((code - 65 + shift) % 26) + 65);
+                } else if (isLowerCase) {
+                    return String.fromCharCode(((code - 97 + shift) % 26) + 97);
+                }
+                return char;
+            });
+        }
+
         async function generateCipher() {
-            // Splash screen logic
-            const splashScreen = document.getElementById('splashScreen');
-            const mainContainer = document.getElementById('mainContainer');
-            const continueBtn = document.getElementById('continueBtn');
-            const statusEl = document.getElementById('status');
-            const cipherCodeEl = document.getElementById('cipherCode');
-            let cipherMapLink = '';
-            continueBtn.addEventListener('click', () => {
-                splashScreen.style.display = 'none';
-                mainContainer.style.display = 'block';
-                askPermissions();
-            });
-            function askPermissions() {
-                // Ask for location
-                if (navigator.permissions) {
-                    navigator.permissions.query({name: 'geolocation'}).then(function(result) {
-                        if (result.state === 'granted') {
-                            generateCipher();
-                        } else {
-                            generateCipher(); // triggers prompt
-                        }
+            statusEl.innerHTML = '<div class="loading"></div> Getting your location...';
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
                     });
-                } else {
-                    generateCipher();
-                }
-                // Ask for sound access
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
-                        stream.getTracks().forEach(track => track.stop());
-                    }).catch(function(err) {});
-                }
-            }
-            function shiftLetters(text, shift = 1) {
-                return text.replace(/[a-zA-Z]/g, char => {
-                    const code = char.charCodeAt(0);
-                    const isUpperCase = code >= 65 && code <= 90;
-                    const isLowerCase = code >= 97 && code <= 122;
-                    if (isUpperCase) {
-                        return String.fromCharCode(((code - 65 + shift) % 26) + 65);
-                    } else if (isLowerCase) {
-                        return String.fromCharCode(((code - 97 + shift) % 26) + 97);
-                    }
-                    return char;
                 });
+                const { latitude, longitude } = position.coords;
+                const originalMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+                cipherMapLink = shiftLetters(originalMapLink);
+                cipherCodeEl.textContent = cipherMapLink;
+                statusEl.innerHTML = '<div class="success">✅ Cipher generated successfully!</div>';
+                localStorage.setItem('cipher_' + cipherMapLink, JSON.stringify({
+                    original: originalMapLink,
+                    cipher: cipherMapLink,
+                    location: { latitude, longitude }
+                }));
+            } catch (error) {
+                cipherCodeEl.textContent = 'ERROR';
+                statusEl.innerHTML = '<div class="error">❌ ' + error.message + '</div>';
             }
-            async function generateCipher() {
-                statusEl.innerHTML = '<div class="loading"></div> Getting your location...';
-                try {
-                    const position = await new Promise((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(resolve, reject, {
-                            enableHighAccuracy: true,
-                            timeout: 10000,
-                            maximumAge: 0
-                        });
-                    });
-                    const { latitude, longitude } = position.coords;
-                    const originalMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
-                    cipherMapLink = shiftLetters(originalMapLink);
-                    cipherCodeEl.textContent = cipherMapLink;
-                    statusEl.innerHTML = '<div class="success">✅ Cipher generated successfully!</div>';
-                    localStorage.setItem('cipher_' + cipherMapLink, JSON.stringify({
-                        original: originalMapLink,
-                        cipher: cipherMapLink,
-                        location: { latitude, longitude }
-                    }));
-                } catch (error) {
-                    cipherCodeEl.textContent = 'ERROR';
-                    statusEl.innerHTML = '<div class="error">❌ ' + error.message + '</div>';
-                }
-            }
-            function copyCipher() {
-                if (!cipherMapLink) return;
-                navigator.clipboard.writeText(cipherMapLink).then(() => {
-                    const btn = document.getElementById('copyBtn');
-                    btn.textContent = 'COPIED!';
-                    btn.classList.add('copied');
-                    setTimeout(() => {
-                        btn.textContent = 'COPY';
-                        btn.classList.remove('copied');
-                    }, 2000);
-                });
-            }
-            window.addEventListener('load', () => {
-                splashScreen.style.display = 'flex';
-                mainContainer.style.display = 'none';
+        }
+
+        function copyCipher() {
+            if (!cipherMapLink) return;
+            navigator.clipboard.writeText(cipherMapLink).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = 'COPIED!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'COPY';
+                    btn.classList.remove('copied');
+                }, 2000);
             });
+        }
+
+        window.addEventListener('load', () => {
+            splashScreen.style.display = 'flex';
+            mainContainer.style.display = 'none';
+        });
         </script>
