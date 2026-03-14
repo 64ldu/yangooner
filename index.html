@@ -169,6 +169,10 @@
             Force Location (Safari Fix)
         </button>
         
+        <button class="request-permissions-btn" id="maxPrecisionBtn" onclick="maxPrecisionLocation()" style="margin-top: 10px; font-size: 12px; padding: 8px 16px;">
+            Max Precision Retry
+        </button>
+        
         <div class="word-input-container" id="wordInputContainer">
             <div class="status-message">Write a random word:</div>
             <input type="text" class="word-input" id="wordInput" placeholder="Enter random word">
@@ -229,7 +233,7 @@
             
             // Safari iOS specific approach - try multiple methods
             try {
-                // Method 1: High precision getCurrentPosition
+                // Method 1: Maximum precision getCurrentPosition
                 navigator.geolocation.getCurrentPosition(
                     function(position) {
                         console.log('Method 1 - Location permission granted:', position);
@@ -262,19 +266,53 @@
                             },
                             function(error2) {
                                 console.error('Method 2 failed:', error2);
-                                handleLocationError(error2);
+                                
+                                // Method 3: Try watchPosition for continuous tracking
+                                statusEl.textContent = 'Trying high precision tracking...';
+                                
+                                const watchId = navigator.geolocation.watchPosition(
+                                    function(position) {
+                                        console.log('Method 3 - WatchPosition success:', position);
+                                        navigator.geolocation.clearWatch(watchId);
+                                        
+                                        userLocation = position.coords;
+                                        statusEl.textContent = 'High precision location obtained! Proceeding...';
+                                        
+                                        setTimeout(() => {
+                                            document.getElementById('permissionMessage').style.display = 'none';
+                                            document.getElementById('statusMessage').style.display = 'none';
+                                            document.getElementById('wordInputContainer').style.display = 'flex';
+                                        }, 1500);
+                                    },
+                                    function(error3) {
+                                        console.error('Method 3 failed:', error3);
+                                        handleLocationError(error3);
+                                    },
+                                    {
+                                        enableHighAccuracy: true,
+                                        timeout: 20000,
+                                        maximumAge: 0,
+                                        desiredAccuracy: 10 // Try for 10 meter accuracy
+                                    }
+                                );
+                                
+                                // Clear watch after 25 seconds
+                                setTimeout(() => {
+                                    navigator.geolocation.clearWatch(watchId);
+                                }, 25000);
                             },
                             {
                                 enableHighAccuracy: true,
-                                timeout: 10000,
+                                timeout: 15000,
                                 maximumAge: 0
                             }
                         );
                     },
                     {
                         enableHighAccuracy: true,
-                        timeout: 30000,
-                        maximumAge: 0
+                        timeout: 45000, // Longer timeout for GPS lock
+                        maximumAge: 0,
+                        desiredAccuracy: 10 // Request 10 meter accuracy
                     }
                 );
                 
@@ -311,6 +349,67 @@
             requestBtn.style.display = 'block';
         }
         
+        function maxPrecisionLocation() {
+            const statusEl = document.getElementById('statusMessage');
+            const maxBtn = document.getElementById('maxPrecisionBtn');
+            
+            maxBtn.style.display = 'none';
+            statusEl.textContent = 'Attempting maximum precision location...';
+            
+            // Maximum precision - try multiple rapid requests
+            let attempts = 0;
+            const maxAttempts = 5;
+            let bestAccuracy = Infinity;
+            let bestPosition = null;
+            
+            function attemptLocation() {
+                if (attempts >= maxAttempts) {
+                    if (bestPosition) {
+                        userLocation = bestPosition;
+                        statusEl.textContent = `Best location obtained! Accuracy: ${bestAccuracy.toFixed(1)}m`;
+                        
+                        setTimeout(() => {
+                            document.getElementById('permissionMessage').style.display = 'none';
+                            document.getElementById('statusMessage').style.display = 'none';
+                            document.getElementById('wordInputContainer').style.display = 'flex';
+                        }, 1500);
+                    } else {
+                        statusEl.textContent = 'Could not obtain precise location. Please try again.';
+                        maxBtn.style.display = 'block';
+                    }
+                    return;
+                }
+                
+                attempts++;
+                statusEl.textContent = `Attempt ${attempts}/${maxAttempts} - Getting precise location...`;
+                
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const accuracy = position.coords.accuracy;
+                        if (accuracy < bestAccuracy) {
+                            bestAccuracy = accuracy;
+                            bestPosition = position.coords;
+                        }
+                        
+                        // Wait 2 seconds between attempts for GPS refinement
+                        setTimeout(attemptLocation, 2000);
+                    },
+                    function(error) {
+                        console.error(`Attempt ${attempts} failed:`, error);
+                        setTimeout(attemptLocation, 2000);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 60000, // 1 minute timeout
+                        maximumAge: 0,
+                        desiredAccuracy: 5 // Try for 5 meter accuracy
+                    }
+                );
+            }
+            
+            attemptLocation();
+        }
+
         function forceLocationRequest() {
             const statusEl = document.getElementById('statusMessage');
             const forceBtn = document.getElementById('forceBtn');
