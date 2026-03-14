@@ -146,10 +146,10 @@
     </div>
     
     <div class="status-message" id="statusMessage">
-        Requesting permissions...
+        Click the button below to request permissions
     </div>
     
-    <button class="request-permissions-btn" id="requestPermissionsBtn" onclick="requestPermissions()" style="display: none;">
+    <button class="request-permissions-btn" id="requestPermissionsBtn" onclick="requestPermissions()">
         Request Permissions
     </button>
     
@@ -290,8 +290,8 @@
             });
         }
 
-        // Auto-generate on page load
-        window.addEventListener('load', requestPermissions);
+        // Auto-generate on page load - removed to allow manual permission request
+        // window.addEventListener('load', requestPermissions);
     </script>
 </body>
 </html>
